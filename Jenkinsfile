@@ -29,13 +29,9 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Building..with ${WORKSPACE}"
-                UiPathPack (
-                    outputPath: "Output\\${env.BUILD_NUMBER}",
-                    projectJsonPath: "project.json",
-                    version: [$class: 'ManualVersionEntry', version: "${MAJOR}.${MINOR}.${env.BUILD_NUMBER}"],
-                    useOrchestrator: false,
-                    traceLevel: 'None'
-                )
+                sh """
+                uipcli pack --output Output/${env.BUILD_NUMBER} --project project.json --version ${MAJOR}.${MINOR}.${env.BUILD_NUMBER}
+                """
             }
         }
 
@@ -50,17 +46,9 @@ pipeline {
         stage('Deploy to UAT') {
             steps {
                 echo "Deploying ${BRANCH_NAME} to UAT"
-                UiPathDeploy (
-                    packagePath: "Output\\${env.BUILD_NUMBER}",
-                    orchestratorAddress: "${UIPATH_ORCH_URL}",
-                    orchestratorTenant: "${UIPATH_ORCH_TENANT_NAME}",
-                    folderName: "${UIPATH_ORCH_FOLDER_NAME}",
-                    environments: 'DEV',
-                    credentials: Token(accountName: "${UIPATH_ORCH_LOGICAL_NAME}", credentialsId: 'UiPathNazeer'),
-                    traceLevel: 'None',
-                    entryPointPaths: 'Main.xaml',
-                    createProcess: true // Add this line
-                )
+                sh """
+                uipcli deploy --package Output/${env.BUILD_NUMBER} --orchestrator ${UIPATH_ORCH_URL} --tenant ${UIPATH_ORCH_TENANT_NAME} --folder ${UIPATH_ORCH_FOLDER_NAME} --environment DEV --account ${UIPATH_ORCH_LOGICAL_NAME} --credentials UiPathNazeer --entry-point Main.xaml --create-process
+                """
             }
         }
 
